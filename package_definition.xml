@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <SystemDefinition schema="3.0.0">
  <package id="epac" name="EPAC" levels="tool">
-  <collection id="epac" name="SVGT Encoder" level="tool">
+  <collection id="epac" name="EPAC" level="tool">
    <component id="epac" filter="s60" name="EPOC Package Manager" target="desktop">
     <unit bldFile="group"/>
    </component>
