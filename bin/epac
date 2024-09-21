@@ -146,6 +146,7 @@ _main () {
     | _select \
     | xargs -I'{}' "${SHELL}" -c 'pkg=$1 ; shift ; sbs -s "${DB}/${pkg}/package_definition.xml" "$@"' _ '{}' ${TODO} "${EXOPTS[@]}"
 
+  >&2 echo "Done!"
   exit 0
 }
 _main "$@"
