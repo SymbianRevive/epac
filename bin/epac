@@ -1,0 +1,155 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+export LOCALE=C
+export LC_ALL=C
+
+_err () {
+  #>&2 echo "$(basename -- "$3"):$2:err: ec $1"
+  exit "$1"
+}
+
+_end () {
+  #>&2 echo 'Leaving EPAC...'
+  :
+}
+
+_exit () {
+  >&2 echo 'Interrupted...'
+  exit 130
+}
+
+trap '_err $? ${LINENO} "${BASH_SOURCE[0]}"' ERR
+trap '_int' INT
+trap '_end' QUIT EXIT
+
+_usage () {
+  >&2 echo "USAGE: $0 [-h]"
+  >&2 echo "       $0  -S  [PACKAGES...]"
+  >&2 echo "       $0  -R  [PACKAGES...]"
+}
+
+_help () {
+  _usage
+  >&2 cat <<EOF
+
+  EPAC - ERA Package Manager
+
+ARGUMENTS
+
+  PACKAGES
+        Packages to select
+
+OPTIONS
+
+  -S
+        Install packages
+
+  -R
+        Uninstall packages
+
+  -c TARGET
+        Install for the specified target
+
+  -h
+        Display this message
+
+SUPPORT
+
+  For more info about EPAC, visit https://github.com/SymbianRevive/EPAC
+
+LICENSE
+
+  0BSD
+
+AUTHORS
+
+  SymbianRevive
+EOF
+}
+
+EXOPTS=()
+TODO=
+while getopts ':SRc:h' o ; do
+  case "$o" in
+    S)
+      TODO=
+      ;;
+    R)
+      TODO=reallyclean
+      ;;
+    c)
+      EXOPTS+=('-c' "${OPTARG}")
+      ;;
+    h)
+      _help
+      exit 0
+      ;;
+    *)
+      _usage
+      exit 1
+      ;;
+  esac
+done
+
+shift $((OPTIND-1))
+
+declare -r DB=${EPAC_DB:-${HOME}/.cache/epac}
+export DB
+
+_FORCE_NEW_CLONE=0
+clone_or_fetch () {
+  local dir
+  if [[ -e "$1"/.git ]] && (( ! _FORCE_NEW_CLONE )) ; then
+    >&2 git -C "$1" checkout -f ||:
+    >&2 git -C "$1" clean -fdx ||:
+    >&2 git -C "$1" fetch origin
+    >&2 git -C "$1" reset --hard origin/HEAD
+  else
+    rm -rf "$1"
+
+    dir=$1
+    shift
+
+    for repo in "$@" ; do
+      &>/dev/null GIT_TERMINAL_PROMPT=0 git clone --single-branch -- "${repo}" "${dir}" && return 0 || :
+    done
+
+    return 123
+  fi
+}
+
+collect_deps () {
+  while read -r pkg ; do
+    if ! clone_or_fetch "${DB}/${pkg}" "https://github.com/SymbianRevive/${pkg}.git" || \
+       ! [[ -f "${DB}/${pkg}/package_definition.xml" ]] ; then
+      >&2 echo "Unknown package in dependency chain: ${pkg}"
+      return 123
+    fi
+
+    printf '%s %s\n' "$1" "${pkg}"
+
+    [[ -f "${DB}/ports/${pkg}/dependencies.inf" ]] && \
+      collect_deps "${pkg}" <"${DB}/ports/${pkg}/dependencies.inf"
+  done
+}
+
+_select () {
+  case "${TODO}" in
+    '')
+      collect_deps '~' \
+        |tsort \
+        |grep -v '^~$'
+      ;;
+    *)
+      cat
+      ;;
+  esac
+}
+
+_main () {
+  printf -- '%s\n' "$@" \
+    |_select \
+    | xargs -I'{}' "${SHELL}" -c 'pkg=$1 ; shift ; sbs -s "${DB}/${pkg}/package_definition.xml" "$@"' _ '{}' ${TODO} "${EXOPTS[@]}"
+}
+_main "$@"

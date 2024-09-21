@@ -1,0 +1,5 @@
+= EPAC
+
+EPAC is The EPOC Package Manager
+
+Conveniently install, uninstall and update SBS packages

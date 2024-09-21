@@ -1,0 +1,5 @@
+PRJ_PLATFORMS
+  TOOLS2
+
+PRJ_EXPORTS
+  ../bin/epac   +/tools/epac
