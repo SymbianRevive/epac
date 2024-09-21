@@ -5,7 +5,7 @@ export LOCALE=C
 export LC_ALL=C
 
 _err () {
-  #>&2 echo "$(basename -- "$3"):$2:err: ec $1"
+  >&2 echo "$(basename -- "$3"):$2:err: ec $1"
   exit "$1"
 }
 
