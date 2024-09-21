@@ -5,7 +5,7 @@ export LOCALE=C
 export LC_ALL=C
 
 _err () {
-  >&2 echo "$(basename -- "$3"):$2:err: ec $1"
+  #>&2 echo "$(basename -- "$3"):$2:err: ec $1"
   exit "$1"
 }
 
@@ -123,8 +123,9 @@ collect_deps () {
 
     printf '%s %s\n' "$1" "${pkg}"
 
-    [[ -f "${DB}/ports/${pkg}/dependencies.inf" ]] && \
+    if [[ -f "${DB}/ports/${pkg}/dependencies.inf" ]] ; then
       collect_deps "${pkg}" <"${DB}/ports/${pkg}/dependencies.inf"
+    fi
   done
 }
 
@@ -143,10 +144,9 @@ _select () {
 
 _main () {
   printf -- '%s\n' "$@" \
-    | _select \
-    | xargs -I'{}' "${SHELL}" -c 'pkg=$1 ; shift ; sbs -s "${DB}/${pkg}/package_definition.xml" "$@"' _ '{}' ${TODO} "${EXOPTS[@]}"
+    |_select \
+    |xargs -I'{}' "${SHELL}" -c 'pkg=$1 ; shift ; sbs -s "${DB}/${pkg}/package_definition.xml" "$@"' _ '{}' ${TODO} "${EXOPTS[@]}"
 
-  >&2 echo "Done!"
   exit 0
 }
 _main "$@"
