@@ -9,19 +9,13 @@ _err () {
   exit "$1"
 }
 
-_end () {
-  #>&2 echo 'Leaving EPAC...'
-  :
-}
-
-_exit () {
+_int () {
   >&2 echo 'Interrupted...'
   exit 130
 }
 
 trap '_err $? ${LINENO} "${BASH_SOURCE[0]}"' ERR
 trap '_int' INT
-trap '_end' QUIT EXIT
 
 _usage () {
   >&2 echo "USAGE: $0 [-h]"
@@ -149,7 +143,9 @@ _select () {
 
 _main () {
   printf -- '%s\n' "$@" \
-    |_select \
+    | _select \
     | xargs -I'{}' "${SHELL}" -c 'pkg=$1 ; shift ; sbs -s "${DB}/${pkg}/package_definition.xml" "$@"' _ '{}' ${TODO} "${EXOPTS[@]}"
+
+  exit 0
 }
 _main "$@"
